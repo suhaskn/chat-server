@@ -2,12 +2,18 @@ const express = require('express')
 const Sse = require('json-sse')
 const bodyParser = require('body-parser')
 
+const cors = require('cors')
+
 const messages = ['hello world']
 
-const sse = new Sse(messages)
+const data = JSON.stringify(messages)
+
+const sse = new Sse(data)
 
 const app = express()
 
+const middelware = cors()
+app.use(middelware)
 const jsonParser = bodyParser.json()
 app.use(jsonParser)
 
@@ -17,8 +23,10 @@ app.post('/message', (req,res) => {
   const { message } = req.body
   messages.push(message)
 
-  sse.updateInit(message)
-  sse.send(message)
+  const data = JSON.stringify(messages)
+
+  sse.updateInit(data)
+  sse.send(data)
 
 
   res.send(message)
