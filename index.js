@@ -15,7 +15,8 @@ db
 const Message = db.define(
   'message',
   {
-    text: Sequelize.STRING
+    text: Sequelize.STRING,
+    user: Sequelize.STRING
   }
 )
 
@@ -40,16 +41,16 @@ app.get('/stream',
 
 app.post('/message', 
         async (req, res) => {
-        const { message } = req.body
+        const { message, user } = req.body
 
-  const entity = await Message.create({ text: message})
+  const entity = await Message.create({ text: message, user})
 
   const messages = await Message.findAll()
 
   const data = JSON.stringify(messages)
 
-  sse.updateInit(data)
-  sse.send(data)
+  stream.updateInit(data)
+  stream.send(data)
 
 
   res.send(entity)
