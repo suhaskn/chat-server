@@ -1,14 +1,25 @@
 const express = require('express')
 const Sse = require('json-sse')
 const bodyParser = require('body-parser')
-
 const cors = require('cors')
+const Sequelize = require('sequelize')
 
-const messages = ['hello world']
+const dababaseUrl = 'postgres://postgres:secret@localhost:5432/postgres'
 
-const data = JSON.stringify(messages)
+const db = new Sequelize(dababaseUrl)
 
-const sse = new Sse(data)
+db
+  .sync({force: false})
+  .then(() => console.log('Database connected'))
+
+const Message = db.define(
+  'message',
+  {
+    text: Sequelize.STRING
+  }
+)
+
+const stream = new Sse()
 
 const app = express()
 
@@ -17,11 +28,23 @@ app.use(middelware)
 const jsonParser = bodyParser.json()
 app.use(jsonParser)
 
-app.get('/stream', sse.init)
+app.get('/stream',
+        async (req,res) => {
+          const messages = await Message.findAll()
+          const data = JSON.stringify(messages)
+          stream.updateInit(data)
+          stream.init(req,res)
+        } 
+        //sse.init
+      )
 
-app.post('/message', (req,res) => {
-  const { message } = req.body
-  messages.push(message)
+app.post('/message', 
+        async (req, res) => {
+        const { message } = req.body
+
+  const entity = await Message.create({ text: message})
+
+  const messages = await Message.findAll()
 
   const data = JSON.stringify(messages)
 
@@ -29,7 +52,7 @@ app.post('/message', (req,res) => {
   sse.send(data)
 
 
-  res.send(message)
+  res.send(entity)
 })
 
 const port = process.env.PORT || 5000
